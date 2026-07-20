@@ -1,21 +1,21 @@
-const { sendError } = require('../response');
+const { sendError } = require("../response");
 
 function notFound(req, res) {
-	return sendError(res, `Route not found: ${req.originalUrl}`, 404);
+  return sendError(res, `Route not found: ${req.originalUrl}`, 404);
 }
 
 function errorHandler(err, req, res, next) {
-	if (res.headersSent) {
-		return next(err);
-	}
+  if (res.headersSent) {
+    return next(err);
+  }
 
-	const statusCode = err.statusCode || err.status || 500;
-	const message = err.message || 'Internal server error';
+  const statusCode = err.statusCode || err.status || 500;
+  const message = err.message || "Internal server error";
 
-	return sendError(res, message, statusCode, err.errors || null);
+  return sendError(res, message, statusCode, err.errors || null);
 }
 
 module.exports = {
-	notFound,
-	errorHandler,
+  notFound,
+  errorHandler,
 };
