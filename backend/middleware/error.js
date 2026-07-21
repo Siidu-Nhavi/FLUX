@@ -1,4 +1,4 @@
-const { sendError } = require("../response");
+import{ sendError } from ("../response");
 
 function notFound(req, res) {
   return sendError(res, `Route not found: ${req.originalUrl}`, 404);

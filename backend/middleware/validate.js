@@ -1,10 +1,10 @@
-const { sendError } = require("../response");
-const {
+import { sendError } from ("../response");
+import {
   validateSignup,
   validateLogin,
   validateEmailOnly,
   validateResetPassword,
-} = require("../authValidator");
+} from ("../authValidator");
 
 function validateAuth(mode) {
   return (req, res, next) => {

@@ -1,5 +1,5 @@
-const supabase = require("../config/supabase");
-const supabaseAdmin = require("../config/supabaseAdmin");
+import supabase from ("../config/supabase");
+import supabaseAdmin from ("../config/supabaseAdmin");
 
 function getFrontendRedirectUrl() {
   return (process.env.FRONTEND_URL || "http://localhost:5173").replace(

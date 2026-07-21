@@ -1,5 +1,5 @@
-const express = require("express");
-const {
+import express from ("express");
+import {
   signup,
   login,
   logout,
@@ -7,11 +7,11 @@ const {
   forgotPassword,
   resendVerification,
   resetPassword,
-} = require("../controller/auth");
-const { validateAuth } = require("../middleware/validate");
-const { requireAuth } = require("../middleware/authMiddleware");
+} from ("../controller/auth");
+import { validateAuth } from ("../middleware/validate");
+import { requireAuth } from ("../middleware/authMiddleware");
 
-const router = express.Router();
+import router from  express.Router();
 
 router.post("/signup", validateAuth("signup"), signup);
 router.post("/login", validateAuth("login"), login);

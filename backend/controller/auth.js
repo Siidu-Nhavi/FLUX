@@ -1,5 +1,5 @@
-const authService = require("../services/authService");
-const { sendSuccess } = require("../response");
+import  authService from ("../services/authService");
+import { sendSuccess }  from ("../response");
 
 async function signup(req, res, next) {
   try {
