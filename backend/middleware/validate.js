@@ -1,10 +1,10 @@
-import { sendError } from ("../response");
+import { sendError } from "../response.js";
 import {
   validateSignup,
   validateLogin,
   validateEmailOnly,
   validateResetPassword,
-} from ("../authValidator");
+} from "../authValidator.js";
 
 function validateAuth(mode) {
   return (req, res, next) => {
@@ -29,6 +29,4 @@ function validateAuth(mode) {
   };
 }
 
-module.exports = {
-  validateAuth,
-};
+export { validateAuth };

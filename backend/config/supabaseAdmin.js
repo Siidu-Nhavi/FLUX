@@ -1,6 +1,7 @@
-import { createClient } from ("@supabase/supabase-js");
+import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
-require("dotenv").config();
+dotenv.config();
 
 const supabaseUrl = (process.env.SUPABASE_URL || "").trim();
 const supabaseServiceRoleKey = (
@@ -15,4 +16,4 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-module.exports = supabaseAdmin;
+export default supabaseAdmin;

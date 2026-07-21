@@ -75,7 +75,7 @@ function validateResetPassword(body) {
   };
 }
 
-module.exports = {
+export {
   validateSignup,
   validateLogin,
   validateEmailOnly,

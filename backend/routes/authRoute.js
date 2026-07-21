@@ -1,4 +1,4 @@
-import express from ("express");
+import express from "express";
 import {
   signup,
   login,
@@ -7,11 +7,11 @@ import {
   forgotPassword,
   resendVerification,
   resetPassword,
-} from ("../controller/auth");
-import { validateAuth } from ("../middleware/validate");
-import { requireAuth } from ("../middleware/authMiddleware");
+} from "../controller/auth.js";
+import { validateAuth } from "../middleware/validate.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
 
-import router from  express.Router();
+const router = express.Router();
 
 router.post("/signup", validateAuth("signup"), signup);
 router.post("/login", validateAuth("login"), login);
@@ -26,4 +26,4 @@ router.post(
   resetPassword,
 );
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-import{ sendError } from ("../response");
+import { sendError } from "../response.js";
 
 function notFound(req, res) {
   return sendError(res, `Route not found: ${req.originalUrl}`, 404);
@@ -15,7 +15,4 @@ function errorHandler(err, req, res, next) {
   return sendError(res, message, statusCode, err.errors || null);
 }
 
-module.exports = {
-  notFound,
-  errorHandler,
-};
+export { notFound, errorHandler };

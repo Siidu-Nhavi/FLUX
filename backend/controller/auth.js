@@ -1,5 +1,5 @@
-import  authService from ("../services/authService");
-import { sendSuccess }  from ("../response");
+import authService from "../services/authService.js";
+import { sendSuccess } from "../response.js";
 
 async function signup(req, res, next) {
   try {
@@ -75,7 +75,7 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = {
+export {
   signup,
   login,
   logout,

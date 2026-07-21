@@ -1,9 +1,10 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
+import authRoute from "./routes/authRoute.js";
+import { notFound, errorHandler } from "./middleware/error.js";
 
-const express = require("express");
-const cors = require("cors");
-const authRoute = require("./routes/authRoute");
-const { notFound, errorHandler } = require("./middleware/error");
+dotenv.config();
 
 const app = express();
 
@@ -25,4 +26,4 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-module.exports = app;
+export default app;

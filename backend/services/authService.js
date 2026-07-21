@@ -1,5 +1,5 @@
-import supabase from ("../config/supabase");
-import supabaseAdmin from ("../config/supabaseAdmin");
+import supabase from "../config/supabase.js";
+import supabaseAdmin from "../config/supabaseAdmin.js";
 
 function getFrontendRedirectUrl() {
   return (process.env.FRONTEND_URL || "http://localhost:5173").replace(
@@ -109,7 +109,7 @@ function createAuthError(message, statusCode) {
   return error;
 }
 
-module.exports = {
+export default {
   signUp,
   signIn,
   getUserFromToken,

@@ -19,7 +19,4 @@ function sendError(
   });
 }
 
-module.exports = {
-  sendSuccess,
-  sendError,
-};
+export { sendSuccess, sendError };

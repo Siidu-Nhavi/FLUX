@@ -1,5 +1,5 @@
-import  supabase from ("../config/supabase");
-import { sendError } from ("../response");
+import supabase from "../config/supabase.js";
+import { sendError } from "../response.js";
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";
@@ -25,6 +25,4 @@ async function requireAuth(req, res, next) {
   return next();
 }
 
-module.exports = {
-  requireAuth,
-};
+export { requireAuth };
