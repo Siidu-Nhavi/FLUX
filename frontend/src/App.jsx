@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
-import { supabase } from './lib/supabaseClient';
-import './App.css';
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "./lib/supabaseClient";
+import "./App.css";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const initialForm = {
-  name: '',
-  email: '',
-  password: '',
-  newPassword: '',
-  confirmPassword: '',
+  name: "",
+  email: "",
+  password: "",
+  newPassword: "",
+  confirmPassword: "",
 };
 
 function parseAuthHash() {
-  const hash = window.location.hash.replace(/^#/, '');
+  const hash = window.location.hash.replace(/^#/, "");
 
   if (!hash) {
     return {};
@@ -24,50 +24,53 @@ function parseAuthHash() {
 
 function parseOAuthCode() {
   const searchParams = new URLSearchParams(window.location.search);
-  const code = searchParams.get('code');
+  const code = searchParams.get("code");
 
-  return code || '';
+  return code || "";
 }
 
 function App() {
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState("login");
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
 
-  const fetchCurrentUser = useCallback(async (token, statusMessage = 'Current user loaded.') => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  const fetchCurrentUser = useCallback(
+    async (token, statusMessage = "Current user loaded.") => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      const payload = await response.json();
+        const payload = await response.json();
 
-      if (!response.ok) {
-        throw new Error(payload.message || 'Unable to load user.');
+        if (!response.ok) {
+          throw new Error(payload.message || "Unable to load user.");
+        }
+
+        setUser(payload.data.user);
+        setSession({ accessToken: token });
+        setMessage(statusMessage);
+        setError("");
+      } catch (err) {
+        localStorage.removeItem("flux_access_token");
+        setUser(null);
+        setSession(null);
+        setError(err.message);
       }
-
-      setUser(payload.data.user);
-      setSession({ accessToken: token });
-      setMessage(statusMessage);
-      setError('');
-    } catch (err) {
-      localStorage.removeItem('flux_access_token');
-      setUser(null);
-      setSession(null);
-      setError(err.message);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const handleOAuthLogin = useCallback(async (provider) => {
     setLoading(true);
-    setMessage('');
-    setError('');
+    setMessage("");
+    setError("");
 
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -81,7 +84,7 @@ function App() {
         throw oauthError;
       }
     } catch (err) {
-      setError(err.message || 'OAuth sign-in failed.');
+      setError(err.message || "OAuth sign-in failed.");
       setLoading(false);
     }
   }, []);
@@ -92,7 +95,9 @@ function App() {
     const oauthCode = parseOAuthCode();
 
     if (oauthCode) {
-      const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(
+        window.location.href,
+      );
 
       if (error) {
         setError(error.message);
@@ -102,38 +107,49 @@ function App() {
       const sessionToken = data.session?.access_token;
 
       if (sessionToken) {
-        localStorage.setItem('flux_access_token', sessionToken);
+        localStorage.setItem("flux_access_token", sessionToken);
 
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
 
-        setMessage('OAuth sign-in completed successfully.');
+        setMessage("OAuth sign-in completed successfully.");
 
-        await fetchCurrentUser(sessionToken, 'OAuth sign-in completed successfully.');
+        await fetchCurrentUser(
+          sessionToken,
+          "OAuth sign-in completed successfully.",
+        );
         return;
       }
     }
 
     if (authHash.access_token) {
-      localStorage.setItem('flux_access_token', authHash.access_token);
+      localStorage.setItem("flux_access_token", authHash.access_token);
 
-      if (authHash.type === 'recovery') {
-        setMode('reset');
+      if (authHash.type === "recovery") {
+        setMode("reset");
       }
 
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.search,
+      );
 
       const statusMessage =
-        authHash.type === 'recovery'
-          ? 'Recovery link detected. Set a new password to finish the reset.'
-          : authHash.type === 'signup'
-            ? 'Email verified successfully. You can now continue.'
-            : 'Current user loaded.';
+        authHash.type === "recovery"
+          ? "Recovery link detected. Set a new password to finish the reset."
+          : authHash.type === "signup"
+            ? "Email verified successfully. You can now continue."
+            : "Current user loaded.";
 
       await fetchCurrentUser(authHash.access_token, statusMessage);
       return;
     }
 
-    const token = localStorage.getItem('flux_access_token');
+    const token = localStorage.getItem("flux_access_token");
 
     if (!token) {
       return;
@@ -161,8 +177,8 @@ function App() {
   async function handleSubmit(event) {
     event.preventDefault();
     setLoading(true);
-    setMessage('');
-    setError('');
+    setMessage("");
+    setError("");
 
     const payloadByMode = {
       login: { email: form.email, password: form.password },
@@ -173,27 +189,29 @@ function App() {
     };
 
     const endpointByMode = {
-      login: '/api/auth/login',
-      signup: '/api/auth/signup',
-      forgot: '/api/auth/forgot-password',
-      verify: '/api/auth/resend-verification',
-      reset: '/api/auth/reset-password',
+      login: "/api/auth/login",
+      signup: "/api/auth/signup",
+      forgot: "/api/auth/forgot-password",
+      verify: "/api/auth/resend-verification",
+      reset: "/api/auth/reset-password",
     };
 
-    if (mode === 'reset' && form.newPassword !== form.confirmPassword) {
-      setError('Passwords do not match.');
+    if (mode === "reset" && form.newPassword !== form.confirmPassword) {
+      setError("Passwords do not match.");
       setLoading(false);
       return;
     }
 
     try {
-      const token = localStorage.getItem('flux_access_token');
+      const token = localStorage.getItem("flux_access_token");
 
       const response = await fetch(`${API_BASE_URL}${endpointByMode[mode]}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          ...(mode === 'reset' && token ? { Authorization: `Bearer ${token}` } : {}),
+          "Content-Type": "application/json",
+          ...(mode === "reset" && token
+            ? { Authorization: `Bearer ${token}` }
+            : {}),
         },
         body: JSON.stringify(payloadByMode[mode]),
       });
@@ -201,36 +219,38 @@ function App() {
       const result = await response.json();
 
       if (!response.ok) {
-        const fallback = Array.isArray(result.errors) ? result.errors.join(' ') : 'Authentication failed.';
+        const fallback = Array.isArray(result.errors)
+          ? result.errors.join(" ")
+          : "Authentication failed.";
         throw new Error(result.message || fallback);
       }
 
-      if (mode === 'login' || mode === 'signup') {
+      if (mode === "login" || mode === "signup") {
         const nextUser = result.data.user;
         const nextSession = result.data.session;
 
         if (nextSession?.access_token) {
-          localStorage.setItem('flux_access_token', nextSession.access_token);
+          localStorage.setItem("flux_access_token", nextSession.access_token);
         }
 
         setUser(nextUser);
         setSession(nextSession);
       }
 
-      if (mode === 'reset') {
-        localStorage.removeItem('flux_access_token');
+      if (mode === "reset") {
+        localStorage.removeItem("flux_access_token");
         setUser(null);
         setSession(null);
-        setMode('login');
+        setMode("login");
         setForm(initialForm);
       }
 
       setMessage(result.message);
       setForm((current) => ({
         ...current,
-        password: '',
-        newPassword: '',
-        confirmPassword: '',
+        password: "",
+        newPassword: "",
+        confirmPassword: "",
       }));
     } catch (err) {
       setError(err.message);
@@ -240,11 +260,11 @@ function App() {
   }
 
   async function handleLogout() {
-    const token = localStorage.getItem('flux_access_token');
+    const token = localStorage.getItem("flux_access_token");
 
     if (token) {
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
-        method: 'POST',
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -252,14 +272,14 @@ function App() {
     }
 
     await supabase.auth.signOut();
-    localStorage.removeItem('flux_access_token');
+    localStorage.removeItem("flux_access_token");
     setUser(null);
     setSession(null);
-    setMessage('Logged out successfully.');
+    setMessage("Logged out successfully.");
   }
 
-  const isSignup = mode === 'signup';
-  const isResetMode = mode === 'reset';
+  const isSignup = mode === "signup";
+  const isResetMode = mode === "reset";
 
   return (
     <main className="auth-shell">
@@ -268,13 +288,19 @@ function App() {
           <p className="eyebrow">Supabase authentication</p>
           <h1>Ship auth with sign in, verification, and password recovery.</h1>
           <p className="hero-text">
-            Create an account, verify the email, request a reset link, and complete recovery against your Express backend.
+            Create an account, verify the email, request a reset link, and
+            complete recovery against your Express backend.
           </p>
         </div>
 
         <div className="card">
           <div className="oauth-row">
-            <button className="oauth-button google" type="button" disabled={loading} onClick={() => void handleOAuthLogin('google')}>
+            <button
+              className="oauth-button google"
+              type="button"
+              disabled={loading}
+              onClick={() => void handleOAuthLogin("google")}
+            >
               Continue with Google
             </button>
           </div>
@@ -282,16 +308,32 @@ function App() {
           <p className="oauth-divider">or use email and password</p>
 
           <div className="tab-row">
-            <button className={mode === 'login' ? 'tab active' : 'tab'} type="button" onClick={() => setMode('login')}>
+            <button
+              className={mode === "login" ? "tab active" : "tab"}
+              type="button"
+              onClick={() => setMode("login")}
+            >
               Log in
             </button>
-            <button className={mode === 'signup' ? 'tab active' : 'tab'} type="button" onClick={() => setMode('signup')}>
+            <button
+              className={mode === "signup" ? "tab active" : "tab"}
+              type="button"
+              onClick={() => setMode("signup")}
+            >
               Sign up
             </button>
-            <button className={mode === 'forgot' ? 'tab active' : 'tab'} type="button" onClick={() => setMode('forgot')}>
+            <button
+              className={mode === "forgot" ? "tab active" : "tab"}
+              type="button"
+              onClick={() => setMode("forgot")}
+            >
               Reset link
             </button>
-            <button className={mode === 'verify' ? 'tab active' : 'tab'} type="button" onClick={() => setMode('verify')}>
+            <button
+              className={mode === "verify" ? "tab active" : "tab"}
+              type="button"
+              onClick={() => setMode("verify")}
+            >
               Verify email
             </button>
           </div>
@@ -300,18 +342,29 @@ function App() {
             {isSignup && (
               <label>
                 <span>Name</span>
-                <input name="name" value={form.name} onChange={handleChange} placeholder="Jane Doe" />
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="Jane Doe"
+                />
               </label>
             )}
 
-            {mode !== 'reset' && (
+            {mode !== "reset" && (
               <label>
                 <span>Email</span>
-                <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="you@example.com" />
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                />
               </label>
             )}
 
-            {mode === 'login' || mode === 'signup' ? (
+            {mode === "login" || mode === "signup" ? (
               <label>
                 <span>Password</span>
                 <input
@@ -352,24 +405,32 @@ function App() {
 
             <button className="primary-button" type="submit" disabled={loading}>
               {loading
-                ? 'Working...'
-                : mode === 'signup'
-                  ? 'Create account'
-                  : mode === 'forgot'
-                    ? 'Send reset email'
-                    : mode === 'verify'
-                      ? 'Send verification email'
-                      : mode === 'reset'
-                        ? 'Update password'
-                        : 'Log in'}
+                ? "Working..."
+                : mode === "signup"
+                  ? "Create account"
+                  : mode === "forgot"
+                    ? "Send reset email"
+                    : mode === "verify"
+                      ? "Send verification email"
+                      : mode === "reset"
+                        ? "Update password"
+                        : "Log in"}
             </button>
           </form>
 
           <div className="helper-actions">
-            <button className="link-button" type="button" onClick={() => setMode('forgot')}>
+            <button
+              className="link-button"
+              type="button"
+              onClick={() => setMode("forgot")}
+            >
               Forgot your password?
             </button>
-            <button className="link-button" type="button" onClick={() => setMode('verify')}>
+            <button
+              className="link-button"
+              type="button"
+              onClick={() => setMode("verify")}
+            >
               Resend verification email
             </button>
           </div>
@@ -380,11 +441,17 @@ function App() {
           <div className="session-box">
             <div>
               <p className="session-label">Session</p>
-              <p className="session-value">{session?.accessToken ? 'Active' : 'Inactive'}</p>
+              <p className="session-value">
+                {session?.accessToken ? "Active" : "Inactive"}
+              </p>
             </div>
 
             {user ? (
-              <button className="secondary-button" type="button" onClick={handleLogout}>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={handleLogout}
+              >
                 Log out
               </button>
             ) : null}
@@ -398,8 +465,8 @@ function App() {
           ) : (
             <p className="empty-state">
               {isResetMode
-                ? 'Use the recovery link to set a new password.'
-                : 'Sign in to load the authenticated user payload from /api/auth/me.'}
+                ? "Use the recovery link to set a new password."
+                : "Sign in to load the authenticated user payload from /api/auth/me."}
             </p>
           )}
         </div>
