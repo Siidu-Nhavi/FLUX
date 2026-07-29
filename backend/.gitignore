@@ -2,3 +2,7 @@ node_modules
 package.json
 
 /generated/prisma
+.env
+.claude
+.windsurf
+skills-lock.json

@@ -2,9 +2,8 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import authRoute from "./routes/authRoute.js";
-import {Server} from "socket.io";
 import {createServer} from "node:http";
-import {connectToSocket} from "./controller/socketManager.js";
+import connectToSocket from "./controller/socketManager.js";
 import { notFound, errorHandler } from "./middleware/error.js";
 
 dotenv.config();
@@ -28,7 +27,7 @@ app.use(errorHandler); //this middleware handles errors that occur in the applic
 
 const port = process.env.PORT || 5000;
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
