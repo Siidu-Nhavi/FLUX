@@ -1,23 +1,23 @@
 * {
-	box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html {
-	color-scheme: dark;
+  color-scheme: dark;
 }
 
 body {
-	margin: 0;
-	min-width: 320px;
-	font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
-	background: #08111f;
+  margin: 0;
+  min-width: 320px;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: #08111f;
 }
 
 button,
 input {
-	font: inherit;
+  font: inherit;
 }
 
 #root {
-	min-height: 100vh;
+  min-height: 100vh;
 }
