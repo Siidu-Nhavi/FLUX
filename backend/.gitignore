@@ -3,6 +3,7 @@ package.json
 
 /generated/prisma
 .env
+.prettierignore
 .claude
 .windsurf
 .agents
