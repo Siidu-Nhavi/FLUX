@@ -20,6 +20,7 @@
     width: 100%;
     bottom: 0;
     text-align: center;
+    z-index: 200;
 }
 
 .buttonContainers svg {
@@ -43,13 +44,15 @@
 
 .chatRoom {
     position: absolute;
-    height: 90vh;
+    top: 10px;
+    bottom: 80px;
     right: 0;
     background: rgb(255, 254, 254);
     border-radius: 10px;
     width: 30vw;
     padding-inline: 20px;
-   
+    z-index: 150;
+    box-sizing: border-box;
 }
 
 .chatContainer {
@@ -60,16 +63,25 @@
 
 .chattingArea {
     position: absolute;
-    bottom: 0;
-    margin-bottom: 20px;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
-.chattingArea > Button{
-    margin-left: 20px;
-    margin-top:10px;
-   
+.chattingDisplay {
+    max-height: calc(100% - 120px);
+    overflow-y: auto;
 }
-.chattingArea > button > svg
-{
-    color:white;
-    
+
+.chattingArea button svg {
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .chatRoom {
+        left: 10px;
+        width: auto;
+    }
 }
