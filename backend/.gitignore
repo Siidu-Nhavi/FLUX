@@ -1,10 +1,12 @@
 node_modules
 package.json
-
-/generated/prisma
 .env
-.prettierignore
+
+.agents
 .claude
 .windsurf
-.agents
+.env
+node_modules
+dist
 skills-lock.json
+.prettierignore
