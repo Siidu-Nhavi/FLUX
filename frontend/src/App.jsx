@@ -4,6 +4,7 @@ import Home from "./pages/home";
 // import Authentication from "./pages/authentication";
 // import Profile from "./pages/profile";
 import VideoMeet from "./pages/videoMeet";
+import NotFound from "./pages/notFound";
 
 import "./App.css";
 
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           */}
           <Route path="/:url" element={<VideoMeet />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </>
