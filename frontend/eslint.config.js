@@ -18,7 +18,10 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     rules: {
-      "react-refresh/only-export-components": ["warn", { extraHOCs: ["withAuth"] }],
+      "react-refresh/only-export-components": [
+        "warn",
+        { extraHOCs: ["withAuth"] },
+      ],
     },
   },
 ]);

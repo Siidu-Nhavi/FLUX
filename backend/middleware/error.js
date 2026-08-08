@@ -1,4 +1,4 @@
-import { sendError } from "../response.js";
+import { sendError } from "../utils/response.js";
 
 function notFound(req, res) {
   return sendError(res, `Route not found: ${req.originalUrl}`, 404);

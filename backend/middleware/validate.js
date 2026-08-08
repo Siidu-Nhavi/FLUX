@@ -1,10 +1,10 @@
-import { sendError } from "../response.js";
+import { sendError } from "../utils/response.js";
 import {
   validateSignup,
   validateLogin,
   validateEmailOnly,
   validateResetPassword,
-} from "../authValidator.js";
+} from "./authValidator.js";
 
 function validateAuth(mode) {
   return (req, res, next) => {

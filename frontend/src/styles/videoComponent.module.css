@@ -1,87 +1,85 @@
 .meetVideoContainer {
-    position: relative;
-    min-height: 100vh;
-    overflow: hidden;
-    background: rgb(1, 4, 48);
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: rgb(1, 4, 48);
 }
 
 .meetUserVideo {
-    position: absolute;
-    bottom: 80px;
-    height: 20vh;
-    width: auto;
-    left: 20px;
-    z-index: 100;
-    border-radius: 20px;
+  position: absolute;
+  bottom: 80px;
+  height: 20vh;
+  width: auto;
+  left: 20px;
+  z-index: 100;
+  border-radius: 20px;
 }
 
 .buttonContainers {
-    position: absolute;
-    width: 100%;
-    bottom: 0;
-    text-align: center;
-    z-index: 200;
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  text-align: center;
+  z-index: 200;
 }
 
 .buttonContainers svg {
-    font-size: 3rem;
+  font-size: 3rem;
 }
 
 .conferenceView {
-
-    display: flex;
-    flex-wrap: wrap;
-    padding: 10px;
-    gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 10px;
+  gap: 10px;
 }
 
 .conferenceView video {
-    width: 40vw;
-    height: 20vh;
-    min-width: 30vw;
-    border-radius: 10px;
+  width: 40vw;
+  height: 20vh;
+  min-width: 30vw;
+  border-radius: 10px;
 }
 
 .chatRoom {
-    position: absolute;
-    top: 10px;
-    bottom: 80px;
-    right: 0;
-    background: rgb(255, 254, 254);
-    border-radius: 10px;
-    width: 30vw;
-    padding-inline: 20px;
-    z-index: 150;
-    box-sizing: border-box;
+  position: absolute;
+  top: 10px;
+  bottom: 80px;
+  right: 0;
+  background: rgb(255, 254, 254);
+  border-radius: 10px;
+  width: 30vw;
+  padding-inline: 20px;
+  z-index: 150;
+  box-sizing: border-box;
 }
 
 .chatContainer {
-    position: relative;
-    height: 100%;
+  position: relative;
+  height: 100%;
 }
-
 
 .chattingArea {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .chattingDisplay {
-    max-height: calc(100% - 120px);
-    overflow-y: auto;
+  max-height: calc(100% - 120px);
+  overflow-y: auto;
 }
 
 .chattingArea button svg {
-    color: white;
+  color: white;
 }
 
 @media (max-width: 768px) {
-    .chatRoom {
-        left: 10px;
-        width: auto;
-    }
+  .chatRoom {
+    left: 10px;
+    width: auto;
+  }
 }

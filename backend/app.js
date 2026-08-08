@@ -31,4 +31,13 @@ server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
+// Global handlers to surface unexpected errors in the dev terminal.
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err && err.stack ? err.stack : err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
 export default app;

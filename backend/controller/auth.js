@@ -1,5 +1,5 @@
 import authService from "../services/authService.js";
-import { sendSuccess } from "../response.js";
+import { sendSuccess } from "../utils/response.js";
 
 async function signup(req, res, next) {
   try {

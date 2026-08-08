@@ -1,5 +1,5 @@
 import supabase from "../config/supabase.js";
-import { sendError } from "../response.js";
+import { sendError } from "../utils/response.js";
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || "";

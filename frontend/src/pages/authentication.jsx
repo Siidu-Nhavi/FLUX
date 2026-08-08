@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import {
-  Alert,
-  Box,
-  Button,
-  Container,
-  Paper,
-  Stack,
-  
-} from "@mui/material";
+import { Alert, Box, Button, Container, Paper, Stack } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
 import SignIn from "./signin";
 import SignUp from "./signup";
@@ -261,7 +253,6 @@ export default function Authentication() {
               boxShadow: "0 24px 60px rgba(41, 67, 117, 0.12)",
             }}
           >
-            
             <Box sx={{ p: { xs: 3, sm: 5 } }}>
               {message && (
                 <Alert severity="success" sx={{ mb: 2 }}>

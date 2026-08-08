@@ -19,7 +19,8 @@ import SendIcon from "@mui/icons-material/Send";
 import styles from "../styles/videoComponent.module.css";
 
 // Uses the local backend by default; set VITE_SIGNALING_SERVER_URL for LAN or deployed clients.
-const serverUrl = import.meta.env.VITE_SIGNALING_SERVER_URL || "http://localhost:5000";
+const serverUrl =
+  import.meta.env.VITE_SIGNALING_SERVER_URL || "http://localhost:5000";
 const peerConfigConnections = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
@@ -535,7 +536,6 @@ export default function VideoMeetComponent() {
             </IconButton>
             <IconButton onClick={handleEndCall} style={{ color: "red" }}>
               <CallEndIcon />
-
             </IconButton>
             <IconButton onClick={handleAudio} style={{ color: "white" }}>
               {audio ? <MicIcon /> : <MicOffIcon />}
