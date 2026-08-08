@@ -4,6 +4,7 @@ import Home from "./pages/home";
 import Authentication from "./pages/authentication";
 import Profile from "./pages/profile";
 import VideoMeet from "./pages/videoMeet";
+import History from "./pages/history";
 
 import "./App.css";
 
@@ -14,6 +15,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/history" element={<History />} />
 
           <Route path="/auth" element={<Authentication />} />
           <Route path="/auth/:authAction" element={<Authentication />} />

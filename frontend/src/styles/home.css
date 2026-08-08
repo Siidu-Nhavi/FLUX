@@ -45,6 +45,18 @@
   color: #aebbb7;
   font-size: 0.85rem;
 }
+.nav-links {
+  margin-left: 18px;
+}
+.nav-link {
+  color: #aebbb7;
+  text-decoration: none;
+  font-weight: 600;
+  margin-right: 12px;
+}
+.nav-link:hover {
+  color: #fff;
+}
 .nav-status i {
   width: 8px;
   height: 8px;

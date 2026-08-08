@@ -10,7 +10,9 @@ import Typography from "@mui/material/Typography";
 import HomeIcon from "@mui/icons-material/Home";
 
 import { IconButton } from "@mui/material";
-export default function History() {
+import withAuth from "../utils/withAuth";
+
+function History() {
   const { getHistoryOfUser } = useContext(AuthContext);
 
   const [meetings, setMeetings] = useState([]);
@@ -76,3 +78,5 @@ export default function History() {
     </div>
   );
 }
+
+export default withAuth(History);
