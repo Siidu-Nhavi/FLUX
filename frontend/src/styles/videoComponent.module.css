@@ -83,3 +83,48 @@
     width: auto;
   }
 }
+
+/* Lobby and Camera Preview styles */
+.lobbyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: white;
+}
+.lobbyHeading {
+  margin: 0;
+}
+.lobbyControls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.previewWrapper {
+  margin-top: 12px;
+  width: 320px;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+.previewWrapper video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000;
+}
+.localPreview video {
+  display: none; /* keep existing local video element hidden in lobby */
+}
+
+@media (max-width: 600px) {
+  .lobbyControls {
+    flex-direction: column;
+    width: 100%;
+  }
+  .previewWrapper {
+    width: 100%;
+  }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import {
   Badge,
@@ -18,6 +19,50 @@ import ChatIcon from "@mui/icons-material/Chat";
 import SendIcon from "@mui/icons-material/Send";
 import styles from "../styles/videoComponent.module.css";
 
+/** CameraPreview component (top-level to comply with ESLint hooks rule) */
+function CameraPreview({ previewVideoRef, previewStreamRef, stopStream }) {
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (!mounted) {
+          stopStream(stream);
+          return;
+        }
+        previewStreamRef.current = stream;
+        if (previewVideoRef.current) previewVideoRef.current.srcObject = stream;
+      } catch (err) {
+        console.error("CameraPreview: unable to access camera", err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      try {
+        stopStream(previewStreamRef.current);
+      } catch (e) {
+        console.error("Error stopping preview stream:", e);
+      }
+      previewStreamRef.current = null;
+      if (previewVideoRef.current) previewVideoRef.current.srcObject = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={{ width: "320px", maxWidth: "100%" }}>
+      <video
+        ref={previewVideoRef}
+        autoPlay
+        muted
+        playsInline
+        style={{ width: "100%", background: "#000" }}
+      />
+    </div>
+  );
+}
+
 // Uses the local backend by default; set VITE_SIGNALING_SERVER_URL for LAN or deployed clients.
 const serverUrl =
   import.meta.env.VITE_SIGNALING_SERVER_URL || "http://localhost:5000";
@@ -29,7 +74,9 @@ export default function VideoMeetComponent() {
   const socketRef = useRef(null);
   const socketIdRef = useRef(null);
   const localVideoRef = useRef(null);
+  const previewVideoRef = useRef(null);
   const localStreamRef = useRef(null);
+  const previewStreamRef = useRef(null);
   const peerConnectionsRef = useRef({});
   const pendingIceCandidatesRef = useRef({});
   const videoRef = useRef([]);
@@ -46,11 +93,13 @@ export default function VideoMeetComponent() {
   const [newMessages, setNewMessages] = useState(0);
   const [askForUsername, setAskForUsername] = useState(true);
   const [username, setUsername] = useState("");
+  const [nameError, setNameError] = useState("");
   const [videos, setVideos] = useState([]);
   // NEW: tracks whether we're still establishing the socket/room connection.
   // Shown as a full-screen loader between "Connect" being clicked and the
   // server confirming this client has actually joined the room.
   const [connecting, setConnecting] = useState(false);
+  const navigate = useNavigate();
 
   /** Stops a media stream and releases its camera, microphone, or screen tracks. */
   const stopStream = (stream) => {
@@ -104,6 +153,8 @@ export default function VideoMeetComponent() {
       });
     });
   };
+
+  
 
   /** Shows the selected local stream and sends its tracks to all peers. */
   const setLocalStream = (stream) => {
@@ -404,23 +455,59 @@ export default function VideoMeetComponent() {
   };
 
   /** Releases all call resources and returns the user to the home page. */
-  const handleEndCall = () => {
-    stopStream(localStreamRef.current);
-    Object.values(peerConnectionsRef.current).forEach((connection) =>
-      connection.close(),
-    );
-    socketRef.current?.disconnect();
-    window.location.assign("/");
+  const handleEndCall = async () => {
+    // Attempt to save meeting record to backend (best-effort)
+    try {
+      const meetingCode = window.location.pathname.replace(/^\//, "") || null;
+      const token = localStorage.getItem("flux_access_token");
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      if (meetingCode) {
+        await fetch(`${apiBase}/api/meetings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ meetingCode, date: new Date().toISOString() }),
+        });
+      }
+    } catch (err) {
+      console.error("Failed to save meeting record:", err);
+    } finally {
+      stopStream(localStreamRef.current);
+      // Ensure preview stream (if any) is stopped when leaving
+      stopStream(previewStreamRef.current);
+      previewStreamRef.current = null;
+      Object.values(peerConnectionsRef.current).forEach((connection) =>
+        connection.close(),
+      );
+      socketRef.current?.disconnect();
+      navigate("/home", { replace: true });
+    }
   };
 
   /** Leaves the lobby, starts local media, and connects to the call. */
   const connect = async () => {
+    // Require a non-empty display name before connecting
+    if (!username || !username.trim()) {
+      setNameError("Please enter a display name");
+      return;
+    }
+    setNameError("");
     setAskForUsername(false);
     // NEW: show the loader immediately - it stays up until the server
     // confirms (via "joined-room") that we're actually in the room.
     setConnecting(true);
     setVideo(videoAvailable);
     setAudio(audioAvailable);
+    // Stop preview camera (if running) before acquiring the main local stream
+    try {
+      stopStream(previewStreamRef.current);
+      previewStreamRef.current = null;
+      if (previewVideoRef.current) previewVideoRef.current.srcObject = null;
+    } catch (e) {
+      console.error("Error stopping preview stream:", e);
+    }
     await getUserMedia(videoAvailable, audioAvailable);
     connectToSocketServer();
   };
@@ -445,23 +532,38 @@ export default function VideoMeetComponent() {
   return (
     <div>
       {askForUsername ? (
-        <div>
-          <h2>Enter into Lobby</h2>
-          <TextField
-            label="Username"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            variant="outlined"
-          />
-          <Button variant="contained" onClick={connect}>
-            Connect
-          </Button>
-          <div>
-            <video ref={localVideoRef} autoPlay muted />
+          <div className={styles.lobbyContainer}>
+            <h2 className={styles.lobbyHeading}>Enter into Lobby</h2>
+            <div className={styles.lobbyControls}>
+              <TextField
+                label="Username"
+                value={username}
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  if (nameError) setNameError("");
+                }}
+                variant="outlined"
+                required
+                error={Boolean(nameError)}
+                helperText={nameError}
+              />
+              <Button variant="contained" onClick={connect} disabled={!username.trim()}>
+                Connect
+              </Button>
+            </div>
+            <div className={styles.previewWrapper}>
+              <CameraPreview
+                previewVideoRef={previewVideoRef}
+                previewStreamRef={previewStreamRef}
+                stopStream={stopStream}
+              />
+            </div>
+            <div className={styles.localPreview}>
+              <video ref={localVideoRef} autoPlay muted />
+            </div>
           </div>
-        </div>
       ) : connecting ? (
-        // NEW: full-screen loader shown while we wait for the socket to
+        //  full-screen loader shown while we wait for the socket to
         // connect and the server to confirm this client has joined the room.
         <div
           style={{

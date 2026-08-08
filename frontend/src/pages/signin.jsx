@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
 import GoogleIcon from "@mui/icons-material/Google";
 import LockResetRoundedIcon from "@mui/icons-material/LockResetRounded";
 import MarkEmailReadRoundedIcon from "@mui/icons-material/MarkEmailReadRounded";
@@ -173,7 +172,7 @@ export default function SignIn({
                 : "Update password"}
       </Button>
       {view === "signin" && (
-        <Stack spacing={1} alignItems="center">
+        <Stack spacing={1} alignItems="flex-start">
           <Link
             component="button"
             type="button"
@@ -182,18 +181,15 @@ export default function SignIn({
           >
             Forgot your password?
           </Link>
-          <Typography variant="body2" color="text.secondary">
-            New to Flux Meet?{" "}
-            <Link
-              component="button"
-              type="button"
-              onClick={onSignUp}
-              underline="hover"
-              fontWeight={700}
-            >
-              Create an account
-            </Link>
-          </Typography>
+          <Link
+            component="button"
+            type="button"
+            onClick={onSignUp}
+            underline="hover"
+            fontWeight={700}
+          >
+            Create an account
+          </Link>
           <Link
             component="button"
             type="button"
@@ -219,17 +215,6 @@ export default function SignIn({
           sx={{ alignSelf: "center", textTransform: "none" }}
         >
           Back to sign in
-        </Button>
-      )}
-      {user && (
-        <Button
-          component={RouterLink}
-          to="/profile"
-          variant="outlined"
-          size="small"
-          sx={{ alignSelf: "flex-start", textTransform: "none" }}
-        >
-          View profile
         </Button>
       )}
     </Stack>

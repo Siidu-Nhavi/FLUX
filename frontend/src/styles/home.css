@@ -1,8 +1,8 @@
 .home-page {
   min-height: 100vh;
   overflow: hidden;
-  color: #f7f7f4;
-  background: #101817;
+  color: #111111;
+  background: #ffffff;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 .home-nav {
@@ -17,7 +17,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: inherit;
+  color: #111111;
   font-size: 1.35rem;
   font-weight: 750;
   letter-spacing: -0.04em;
@@ -27,8 +27,8 @@
 .card-icon {
   display: grid;
   place-items: center;
-  color: #101817;
-  background: #b9ee67;
+  color: #ffffff;
+  background: #1976d2;
 }
 .brand-mark {
   width: 34px;
@@ -42,20 +42,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #aebbb7;
+  color: #6b7280;
   font-size: 0.85rem;
 }
 .nav-links {
   margin-left: 18px;
 }
 .nav-link {
-  color: #aebbb7;
+  color: #111111;
   text-decoration: none;
   font-weight: 600;
   margin-right: 12px;
 }
 .nav-link:hover {
-  color: #fff;
+  color: #1976d2;
 }
 .nav-status i {
   width: 8px;
@@ -67,7 +67,7 @@
 .home-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 430px;
+  grid-template-columns: minmax(0, 1fr) 480px;
   align-items: center;
   gap: 84px;
   max-width: 1220px;
@@ -75,45 +75,39 @@
   margin: 0 auto;
   padding: 36px;
 }
-.home-hero::before,
-.home-hero::after {
-  position: absolute;
-  border-radius: 50%;
-  content: "";
-  pointer-events: none;
-}
-.home-hero::before {
-  width: 500px;
-  height: 500px;
-  top: -220px;
-  left: -230px;
-  background: radial-gradient(
-    circle,
-    rgba(93, 156, 131, 0.19),
-    transparent 68%
-  );
-}
-.home-hero::after {
-  width: 620px;
-  height: 620px;
-  right: -270px;
-  bottom: -330px;
-  border: 1px solid rgba(185, 238, 103, 0.1);
-  box-shadow:
-    0 0 0 80px rgba(185, 238, 103, 0.025),
-    0 0 0 160px rgba(185, 238, 103, 0.018);
-}
+
+
+
 .hero-copy,
 .meeting-card {
   position: relative;
   z-index: 1;
 }
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.hero-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-image img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
 .eyebrow {
   margin-bottom: 22px;
-  color: #b9ee67;
+  color: #1976d2;
   font-size: 0.73rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.06em;
 }
 .hero-copy h1 {
   max-width: 620px;
@@ -123,30 +117,29 @@
   letter-spacing: -0.075em;
 }
 .hero-copy h1 em {
-  color: #b9ee67;
+  color: #1976d2;
   font-family: Georgia, serif;
   font-weight: 400;
 }
 .hero-description {
-  max-width: 430px;
-  margin-top: 30px;
-  color: #b5c1bd;
+  max-width: 520px;
+  margin-top: 18px;
+  color: #3f4b4a;
   font-size: 1.05rem;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 .meeting-card {
   padding: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 22px;
-  background: rgba(28, 40, 38, 0.86);
-  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 24, 23, 0.06);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(16, 24, 23, 0.06);
 }
 .card-icon {
   width: 48px;
   height: 48px;
-  margin-bottom: 24px;
-  border-radius: 14px;
+  margin-bottom: 18px;
+  border-radius: 6px;
 }
 .card-icon svg {
   font-size: 27px;
@@ -174,18 +167,15 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 15px;
-  border-radius: 10px;
-  color: #142019;
-  background: #b9ee67;
-  font-weight: 750;
-  transition:
-    transform 0.18s,
-    background 0.18s;
+  padding: 12px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #276db2;
+  font-weight: 700;
 }
 .create-button:hover {
   transform: translateY(-2px);
-  background: #c9f780;
+  background: #278a16;
 }
 .create-button svg {
   font-size: 20px;
@@ -200,13 +190,7 @@
   font-weight: 700;
   letter-spacing: 0.11em;
 }
-.join-divider::before,
-.join-divider::after {
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  content: "";
-}
+
 .meeting-card label {
   display: block;
   margin-bottom: 8px;
@@ -217,9 +201,9 @@
 .code-input {
   display: flex;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 10px;
-  background: #111a18;
+  border: 1px solid rgba(16, 24, 23, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
 }
 .code-input:focus-within {
   border-color: #b9ee67;
@@ -240,21 +224,19 @@
 }
 .code-input button {
   display: grid;
-  width: 48px;
+  width: 72px;
   place-items: center;
-  color: #142019;
-  background: #d8e6e1;
+  color: #ffffff;
+  background: #276db2
 }
-.code-input button:hover {
-  background: #b9ee67;
-}
+
 .copy-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   margin-top: 15px;
   padding: 0;
-  color: #b9ee67;
+  color: red;
   background: none;
   font-size: 0.8rem;
 }

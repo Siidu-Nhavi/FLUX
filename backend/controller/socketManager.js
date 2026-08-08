@@ -1,8 +1,8 @@
 import { Server } from "socket.io";
 
-let connections = {}; // Store active socket connections
-let messages = {}; // Store chat messages
-let timeOnline = {}; // Store user online time
+let connections = {}; // Store active socket connections per room (array of socket ids)
+let messages = {}; // Store chat messages per room (array of { data, sender, socketIdSender })
+let timeOnline = {}; // Store user online time by socket id
 
 const connectToSocket = (server) => {
   const io = new Server(server, {
@@ -17,21 +17,30 @@ const connectToSocket = (server) => {
 
   // Handle socket connections
   io.on("connection", (socket) => {
-    socket.on("join-call", (path) => {
-      if (connections[path] === undefined) {
-        connections[path] = [];
-      }
-      connections[path].push(socket.id); // Add the socket ID to the list of connections for the given path
-      timeOnline[socket.id] = new Date(); // Record the time the user joined
+    socket.on("join-call", (path, username) => {
+      if (!path) return;
+      if (!connections[path]) connections[path] = [];
+      if (!messages[path]) messages[path] = [];
 
-      for (let a = 0; a < connections[path].length; ++a) {
-        io.to(socket.id).emit(
-          "chat-message",
-          messages[path][a]["data"], // Emit the chat message data to the newly connected socket
-          messages[path][a]["sender"], // Emit the sender of the chat message to the newly connected socket
-          messages[path][a]["socket-id-sender"], // Emit the socket ID of the sender to the newly connected socket
-        ); //
+      // Add socket to connection list and record join time
+      connections[path].push(socket.id);
+      timeOnline[socket.id] = new Date();
+      socket.join(path);
+
+      // Send existing chat history to the newly connected socket (if any)
+      for (const msg of messages[path]) {
+        io.to(socket.id).emit("chat-message", msg.data, msg.sender, msg["socket-id-sender"]);
       }
+
+      // Notify others in the room that a new user joined and provide current client list
+      const clients = connections[path].slice();
+      socket.emit("joined-room");
+      // Broadcast to everyone (including the new socket) that a user joined; client handles filtering
+      io.in(path).emit("user-joined", socket.id, clients);
+      // Optionally add a system message announcing the join
+      const joinNotice = username ? `${username} joined the room` : "A user joined the room";
+      messages[path].push({ data: joinNotice, sender: "System", "socket-id-sender": socket.id });
+      io.in(path).emit("chat-message", joinNotice, "System", socket.id);
     });
 
     // Handle signaling messages for WebRTC
@@ -40,74 +49,32 @@ const connectToSocket = (server) => {
     });
 
     // Handle chat messages
-    socket.on("chat-message", (data, sender) => {
-      //here we using high order function just little bit advance in javascript
-
-      // Use reduce to find the room that contains the socket ID
-      const [matchingRoom, found] = Object.entries(connections).reduce(
-        // Destructure the accumulator and current room entry
-        ([room, isFound], [roomKey, roomValue]) => {
-          // Check if the current room contains the socket ID
-          if (!isFound && roomValue.includes(socket.id)) {
-            return [roomKey, true]; // If found, return the room key and set isFound to true
-          }
-          return [room, isFound]; // If not found, return the previous room and isFound value
-        },
-
-        ["", false], // Initial accumulator value: empty room and isFound set to false
-      );
-
-      if (found === true) {
-        if (messages[matchingRoom] === undefined) {
-          messages[matchingRoom] = [];
-        }
-        messages[matchingRoom].push({
-          data: data,
-          sender: sender,
-          "socket-id-sender": socket.id,
-        }); // Store the chat message in the messages object for the matching room
-
-        console.log("message", Key, ":", sender, data);
-
-        connections[matchingRoom].forEach((elem) => {
-          // Iterate over the socket IDs in the matching room
-          io.to(elem).emit("chat-message", data, sender, socket.id); // Emit the chat message to each socket in the room
-        });
-      }
+    socket.on("chat-message", (data, sender, messageId) => {
+      // Find the room(s) this socket belongs to by checking connections
+      const matchingRoom = Object.keys(connections).find((roomKey) => connections[roomKey].includes(socket.id));
+      if (!matchingRoom) return;
+      if (!messages[matchingRoom]) messages[matchingRoom] = [];
+      messages[matchingRoom].push({ data, sender, "socket-id-sender": socket.id, messageId });
+      io.in(matchingRoom).emit("chat-message", data, sender, socket.id, messageId);
     });
 
     // Handle user online time tracking and disconnection
     socket.on("disconnect", () => {
-      let diffTime = Math.abs(timeOnline[socket.id] - new Date()); // Calculate the time difference between when the user joined and disconnected
-
-      let key;
-
-      for (const [k, v] of JSON.parse(
-        JSON.stringify(Object.entries(connections)),
-      )) {
-        // Iterate over the connections object to find the room that contains the socket ID
-
-        for (let a = 0; a < connections[key].length; ++a) {
-          // Iterate over the socket IDs in the room
-          if (v[a] === socket.id) {
-            //check if the current socket ID matches the disconnected socket ID
-            key = k; // Store the room key for the matching room
-
-            for (let a = 0; a < connections[key].length; ++a) {
-              // Iterate over the socket IDs in the matching room
-              io.to(connections[key][a]).emit("user-left", socket.id); // Emit a "user-left" event to all sockets in the room, notifying them that the user has left
-            }
-
-            let index = connections[key].indexOf(socket.id); // Find the index of the disconnected socket ID in the connections array for the matching room
-
-            connections[key].splice(index, 1); // Remove the disconnected socket ID from the connections array for the matching room
-
-            if (coneections[key].length === 0) {
-              delete connections[key]; // If there are no more connections in the room, delete the room from the connections object
-            }
-          }
+      // Clean up the socket from any rooms it belonged to
+      for (const [roomKey, socketList] of Object.entries(connections)) {
+        const index = socketList.indexOf(socket.id);
+        if (index !== -1) {
+          // Notify remaining participants
+          socketList.forEach((sid) => {
+            io.to(sid).emit("user-left", socket.id);
+          });
+          // Remove from room list
+          socketList.splice(index, 1);
+          if (socketList.length === 0) delete connections[roomKey];
         }
       }
+      // Remove online time record
+      delete timeOnline[socket.id];
     });
 
     return io;

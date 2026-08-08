@@ -21,13 +21,14 @@ function History() {
       try {
         const history = await getHistoryOfUser();
         setMeetings(history);
-      } catch {
+      } catch (error) {
+        console.error("Error fetching meeting history:", error);
         // IMPLEMENT SNACKBAR
       }
     };
 
     fetchHistory();
-  }, []);
+  }, [getHistoryOfUser]);
 
   let formatDate = (dateString) => {
     const date = new Date(dateString);

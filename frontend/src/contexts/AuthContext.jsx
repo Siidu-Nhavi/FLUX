@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from "react";
+import  { createContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export const AuthContext = createContext({});
@@ -42,13 +42,21 @@ export function AuthProvider({ children }) {
   async function getHistoryOfUser() {
     // Attempt to fetch meeting history from backend API.
     try {
-      const resp = await fetch("/api/meetings", {
-        credentials: "same-origin",
+      const token = localStorage.getItem("flux_access_token") || session?.access_token;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      // Prevent browser caching/conditional requests which can return 304 Not Modified
+      headers["Cache-Control"] = "no-cache";
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      
+      const resp = await fetch(`${apiBase}/api/meetings/history`, {
+        headers,
+        cache: "no-store",
       });
 
       if (!resp.ok) return [];
-      const data = await resp.json();
-      return Array.isArray(data) ? data : data.meetings || [];
+      const payload = await resp.json();
+      // payload.data contains meetings according to backend sendSuccess format
+      return Array.isArray(payload.data) ? payload.data : payload.data?.meetings || [];
     } catch (e) {
         console.error("Error fetching meeting history:", e);
       return [];

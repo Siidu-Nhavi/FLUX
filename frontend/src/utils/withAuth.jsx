@@ -9,14 +9,23 @@ const withAuth = (WrappedComponent) => {
 
     useEffect(() => {
       const checkAuth = async () => {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-          navigate("/", { replace: true });
-        } else {
+        try {
+          const { data } = await supabase.auth.getSession();
+          const session = data?.session ?? null;
+          const token = localStorage.getItem("flux_access_token");
+          if (!session && !token) {
+            navigate("/", { replace: true });
+            return;
+          }
           setLoading(false);
+        } catch (e) {
+          const token = localStorage.getItem("flux_access_token");
+          if (!token) {
+            navigate("/", { replace: true });
+            return;
+          }
+          setLoading(false);
+          console.error("Error checking auth status:", e);
         }
       };
 

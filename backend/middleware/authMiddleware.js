@@ -14,7 +14,16 @@ async function requireAuth(req, res, next) {
     return sendError(res, "Missing authorization token.", 401);
   }
 
+  // Debug: log token presence (masking most of it) and Supabase response when validation fails
+  try {
+    const masked = `${token?.slice(0, 6)}...${token?.slice(-6)}`;
+    console.debug("requireAuth: validating token", masked);
+  } catch (e) {
+    // ignore
+  }
+
   const { data, error } = await supabase.auth.getUser(token);
+  if (error) console.debug("requireAuth: supabase.getUser error", error.message || error);
 
   if (error || !data?.user) {
     return sendError(res, "Unauthorized request.", 401);

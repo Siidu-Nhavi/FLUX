@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link as RouterLink, useParams } from "react-router-dom";
+import { Link as RouterLink, useParams, useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import { Alert, Box, Button, Container, Paper, Stack } from "@mui/material";
+import { Alert, Box, Button, Container, Paper, Stack, TextField } from "@mui/material";
 import { supabase } from "../lib/supabaseClient";
 import SignIn from "./signin";
 import SignUp from "./signup";
@@ -20,11 +20,13 @@ function getHashParams() {
 
 export default function Authentication() {
   const { authAction } = useParams();
+  const navigate = useNavigate();
   const [view, setView] = useState(() => VIEW_BY_ROUTE[authAction] || "signin");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
+  const [guestMeetingCode, setGuestMeetingCode] = useState("");
 
   const clearFeedback = () => {
     setMessage("");
@@ -117,6 +119,10 @@ export default function Authentication() {
                 ? "Guest session started. You can use Flux Meet without creating an account."
                 : "",
         );
+        // After a successful OAuth/code exchange or guest sign-in, navigate home.
+        if (code || hash.get("access_token") || authAction === "guest") {
+          navigate("/home", { replace: true });
+        }
       } catch (authError) {
         setError(authError.message || "Unable to complete authentication.");
       } finally {
@@ -125,7 +131,29 @@ export default function Authentication() {
     };
 
     void initialiseAuth();
-  }, [authAction, loadCurrentUser]);
+  }, [authAction, loadCurrentUser, navigate]);
+
+  const handleGuestJoin = async () => {
+    clearFeedback();
+    if (!guestMeetingCode.trim()) {
+      setError("Please enter a meeting code to join as a guest.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error: guestError } = await supabase.auth.signInAnonymously();
+      if (guestError) throw guestError;
+      const token = data.session?.access_token || "";
+      if (!token) throw new Error("Unable to start a guest session.");
+      localStorage.setItem(TOKEN_KEY, token);
+      await loadCurrentUser(token, "Guest session started.");
+      navigate(`/${guestMeetingCode.trim()}`, { replace: true });
+    } catch (e) {
+      setError(e.message || "Unable to join as guest.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignIn = async ({ email, password }) => {
     setLoading(true);
@@ -136,6 +164,7 @@ export default function Authentication() {
       if (token) localStorage.setItem(TOKEN_KEY, token);
       setUser(result.data.user);
       setMessage(result.message);
+      if (token) navigate("/home", { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -157,6 +186,7 @@ export default function Authentication() {
       setUser(result.data.user);
       setMessage(result.message);
       if (!token) setView("signin");
+      if (token) navigate("/home", { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -267,6 +297,24 @@ export default function Authentication() {
                 >
                   {error}
                 </Alert>
+              )}
+              {authAction === "guest" && (
+                <Stack spacing={2} sx={{ mb: 2 }}>
+                  <TextField
+                    label="Meeting code"
+                    value={guestMeetingCode}
+                    onChange={(e) => setGuestMeetingCode(e.target.value)}
+                    placeholder="e.g. team-sync-42"
+                    fullWidth
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleGuestJoin}
+                    disabled={loading}
+                  >
+                    Join as guest
+                  </Button>
+                </Stack>
               )}
               {view === "signup" ? (
                 <SignUp
