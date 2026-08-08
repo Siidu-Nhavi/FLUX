@@ -42,7 +42,9 @@ function HomeComponent() {
           Flux
         </a>
         <div className="nav-links">
-          <a className="nav-link" href="/history">History</a>
+          <a className="nav-link" href="/history">
+            History
+          </a>
         </div>
         <span className="nav-status">
           <i /> Secure video meetings
