@@ -5,12 +5,13 @@ import Authentication from "./pages/authentication";
 import Profile from "./pages/profile";
 import VideoMeet from "./pages/videoMeet";
 import History from "./pages/history";
+import { AuthProvider } from "./contexts/AuthContext";
 
 import "./App.css";
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -24,6 +25,6 @@ export default function App() {
           <Route path="/:url" element={<VideoMeet />} />
         </Routes>
       </Router>
-    </>
+    </AuthProvider>
   );
 }
