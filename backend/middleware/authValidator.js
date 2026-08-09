@@ -1,4 +1,8 @@
+//  Updated regex: still simple, avoids catastrophic backtracking
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Stronger password regex (at least 8 chars, upper, lower, digit, special)
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
 function validateEmailPassword(body, { requireName = false } = {}) {
   const errors = [];
@@ -14,8 +18,10 @@ function validateEmailPassword(body, { requireName = false } = {}) {
 
   if (!password) {
     errors.push("Password is required.");
-  } else if (password.length < 6) {
-    errors.push("Password must be at least 6 characters long.");
+  } else if (!PASSWORD_REGEX.test(password)) {
+    errors.push(
+      "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+    );
   }
 
   if (requireName && !name) {
@@ -27,7 +33,6 @@ function validateEmailPassword(body, { requireName = false } = {}) {
     errors,
     value: {
       email,
-      password,
       name,
     },
   };
@@ -64,14 +69,16 @@ function validateResetPassword(body) {
 
   if (!password) {
     errors.push("New password is required.");
-  } else if (password.length < 6) {
-    errors.push("New password must be at least 6 characters long.");
+  } else if (!PASSWORD_REGEX.test(password)) {
+    errors.push(
+      "New password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+    );
   }
 
   return {
     valid: errors.length === 0,
     errors,
-    value: { newPassword: password },
+    value: {},
   };
 }
 

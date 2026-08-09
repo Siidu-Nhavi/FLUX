@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       // Prevent browser caching/conditional requests which can return 304 Not Modified
       headers["Cache-Control"] = "no-cache";
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const apiBase = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
       
       const resp = await fetch(`${apiBase}/api/meetings/history`, {
         headers,
