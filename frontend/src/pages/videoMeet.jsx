@@ -65,7 +65,8 @@ function CameraPreview({ previewVideoRef, previewStreamRef, stopStream }) {
 
 // Uses the local backend by default; set VITE_SIGNALING_SERVER_URL for LAN or deployed clients.
 const serverUrl =
-  import.meta.env.VITE_SIGNALING_SERVER_URL || "http://localhost:5000";
+  import.meta.env.VITE_SIGNALING_SERVER_URL ||
+  "https://flux-43to.onrender.com";
 const peerConfigConnections = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
@@ -460,7 +461,8 @@ export default function VideoMeetComponent() {
     try {
       const meetingCode = window.location.pathname.replace(/^\//, "") || null;
       const token = localStorage.getItem("flux_access_token");
-      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const apiBase =
+        import.meta.env.VITE_API_URL || "https://flux-43to.onrender.com";
       if (meetingCode) {
         await fetch(`${apiBase}/api/meetings`, {
           method: "POST",
