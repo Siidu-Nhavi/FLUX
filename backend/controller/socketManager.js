@@ -8,7 +8,8 @@ const connectToSocket = (server) => {
   const io = new Server(server, {
     // Configure CORS settings for the Socket.IO server agin it is not expected to be used in production but for development purpose it is used to avoid CORS error
     cors: {
-      origin: "*",
+      // Allow requests from the frontend client URL specified in the environment variable
+      origin: process.env.CLIENT_URL, 
       methods: ["GET", "POST"],
       allowedHeaders: ["*"],
       credentials: true,
