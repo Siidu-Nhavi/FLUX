@@ -46,8 +46,7 @@ export function AuthProvider({ children }) {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       // Prevent browser caching/conditional requests which can return 304 Not Modified
       headers["Cache-Control"] = "no-cache";
-      const apiBase =
-        import.meta.env.VITE_API_URL || "https://flux-43to.onrender.com";
+      const apiBase = import.meta.env.VITE_SERVER_URL || "https://flux-43to.onrender.com";
       
       const resp = await fetch(`${apiBase}/api/meetings/history`, {
         headers,

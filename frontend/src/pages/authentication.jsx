@@ -6,8 +6,7 @@ import { supabase } from "../lib/supabaseClient";
 import SignIn from "./signin";
 import SignUp from "./signup";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "https://flux-43to.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL || "https://flux-43to.onrender.com";
 const TOKEN_KEY = "flux_access_token";
 const VIEW_BY_ROUTE = {
   login: "signin",
