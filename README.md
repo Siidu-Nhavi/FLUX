@@ -1,4 +1,4 @@
-## Flux - Full-Stack Video Meeting Application
+# Flux
 
 Flux is a full-stack video meeting application with Supabase authentication, real-time signaling, and WebRTC-based video calls. It includes email/password sign-in, Google OAuth, guest access, protected routes, and a real-time meeting experience.
 
@@ -208,17 +208,18 @@ In this app, SDP offers and answers are exchanged between peers through the Sock
 - Keep secrets in environment files and never hard-code them
 - If you deploy the app, update the Supabase redirect URLs and the signaling URL for production
 ## 9. Branch strategy
-![Branch Strategy](docs/branch.png)
+ ![Branch Strategy] (docs\branch.png)
 
-## 10. Screenshots
-![Landing Page](docs/landingPage.png)
-![Signup Page](docs/signup.png)
-![Login Page](docs/signin.png)
-![Join As Guest Page](docs/joinAsGuest.png)
-![Home Page](docs/home.png)
-![Call Page](docs/videomeet.png)
-![Chat Page](docs/chat.png)
-![Screen Share Page](docs/screenshare.png)
+
+ ## 10.Screenshots
+  ![Landing Page] (docs\landingPage.png)
+  ![Signup Page] (docs\signup.png)
+  ![Login Page] (docs\login.png)
+  ![Join As Guest Page] (docs\joinAsGuest.png)
+  ![Home Page] (docs\home.png)
+  ![Call Page] (docs\videomeet.png)
+  ![Chat Page] (docs\chat.png)
+  ![Screen Share Page] (docs\screenshare.png)
 
 ## License
 
