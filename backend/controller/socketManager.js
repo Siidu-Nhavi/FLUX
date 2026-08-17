@@ -1,85 +1,178 @@
 import { Server } from "socket.io";
+import { randomUUID } from "node:crypto";
 
-let connections = {}; // Store active socket connections per room (array of socket ids)
-let messages = {}; // Store chat messages per room (array of { data, sender, socketIdSender })
-let timeOnline = {}; // Store user online time by socket id
+const messagesByRoom = new Map();
+
+const normalizeOrigin = (value) => value?.trim().replace(/\/$/, "");
+const normalizeRoomId = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/^\/+|\/+$/g, "");
 
 const connectToSocket = (server) => {
+  const allowedOrigins = new Set(
+    [process.env.FRONTEND_URL, process.env.CLIENT_URL, "http://localhost:5173"]
+      .map(normalizeOrigin)
+      .filter(Boolean),
+  );
+
   const io = new Server(server, {
-    // Configure CORS settings for the Socket.IO server agin it is not expected to be used in production but for development purpose it is used to avoid CORS error
     cors: {
-      // Allow requests from the frontend client URL specified in the environment variable
-      origin: process.env.CLIENT_URL, 
+      origin(origin, callback) {
+        const normalizedOrigin = normalizeOrigin(origin);
+        if (!origin || allowedOrigins.has(normalizedOrigin)) {
+          return callback(null, true);
+        }
+        console.warn("[socket] rejected origin", origin);
+        return callback(new Error("Socket origin is not allowed."));
+      },
       methods: ["GET", "POST"],
-      allowedHeaders: ["*"],
       credentials: true,
     },
   });
 
-  // Handle socket connections
   io.on("connection", (socket) => {
-    socket.on("join-call", (path, username) => {
-      if (!path) return;
-      if (!connections[path]) connections[path] = [];
-      if (!messages[path]) messages[path] = [];
+    console.info("[socket] connected", socket.id);
 
-      // Add socket to connection list and record join time
-      connections[path].push(socket.id);
-      timeOnline[socket.id] = new Date();
-      socket.join(path);
-
-      // Send existing chat history to the newly connected socket (if any)
-      for (const msg of messages[path]) {
-        io.to(socket.id).emit("chat-message", msg.data, msg.sender, msg["socket-id-sender"]);
+    socket.on("join-call", (roomPath, username) => {
+      const roomId = normalizeRoomId(roomPath);
+      if (!roomId || socket.data.roomId === roomId) {
+        console.warn("[socket] join-call rejected", {
+          socketId: socket.id,
+          reason: !roomId ? "empty room ID" : "already in room",
+          requestedRoom: roomId,
+          currentRoom: socket.data.roomId,
+        });
+        return;
       }
 
-      // Notify others in the room that a new user joined and provide current client list
-      const clients = connections[path].slice();
-      socket.emit("joined-room");
-      // Broadcast to everyone (including the new socket) that a user joined; client handles filtering
-      io.in(path).emit("user-joined", socket.id, clients);
-      // Optionally add a system message announcing the join
-      const joinNotice = username ? `${username} joined the room` : "A user joined the room";
-      messages[path].push({ data: joinNotice, sender: "System", "socket-id-sender": socket.id });
-      io.in(path).emit("chat-message", joinNotice, "System", socket.id);
+      const existingSocketIds = Array.from(
+        io.sockets.adapter.rooms.get(roomId) || [],
+      );
+      socket.join(roomId);
+      socket.data.roomId = roomId;
+      socket.data.username = String(username || "").trim();
+
+      const history = messagesByRoom.get(roomId) || [];
+      console.info("[socket] replaying message history", { 
+        roomId, 
+        socketId: socket.id,
+        historyCount: history.length
+      });
+      history.forEach((message) => socket.emit("chat-message", ...message));
+
+      console.info("[socket] room joined", {
+        roomId,
+        socketId: socket.id,
+        username: socket.data.username,
+        existingPeers: existingSocketIds.length,
+      });
+      
+      socket.emit("joined-room", roomId);
+      // Only the new participant receives peers and creates offers.
+      socket.emit("existing-users", existingSocketIds);
+      // Notify existing users that a new user joined
+      socket.to(roomId).emit("user-joined", socket.id);
+
+      const joinNotice = socket.data.username
+        ? `${socket.data.username} joined the room`
+        : "A user joined the room";
+      const joinMessage = [joinNotice, "System", socket.id, randomUUID()];
+      messagesByRoom.set(roomId, [...history, joinMessage]);
+      io.to(roomId).emit("chat-message", ...joinMessage);
     });
 
-    // Handle signaling messages for WebRTC
-    socket.on("signal", (toId, message) => {
-      io.to(toId).emit("signal", socket.id, message); // Send the signaling message to the target socket
+    socket.on("signal", (targetSocketId, payload) => {
+      const roomId = socket.data.roomId;
+      const targetSocket = io.sockets.sockets.get(targetSocketId);
+      if (!roomId || targetSocket?.data.roomId !== roomId) {
+        console.warn("[socket] signal relay rejected", {
+          from: socket.id,
+          to: targetSocketId,
+          reason: !roomId ? "sender has no room" : "target not in same room",
+          targetRoomId: targetSocket?.data.roomId,
+          senderRoomId: roomId,
+        });
+        return;
+      }
+      
+      let signalType = "unknown";
+      try {
+        const parsed = JSON.parse(payload);
+        if (parsed.sdp) signalType = parsed.sdp.type;
+        else if (parsed.ice) signalType = "ice-candidate";
+      } catch (e) {
+        // payload is not JSON, ignore
+      }
+      
+      console.info("[socket] relaying signal", {
+        from: socket.id,
+        to: targetSocketId,
+        roomId,
+        type: signalType,
+      });
+      
+      io.to(targetSocketId).emit("signal", socket.id, payload);
     });
 
-    // Handle chat messages
     socket.on("chat-message", (data, sender, messageId) => {
-      // Find the room(s) this socket belongs to by checking connections
-      const matchingRoom = Object.keys(connections).find((roomKey) => connections[roomKey].includes(socket.id));
-      if (!matchingRoom) return;
-      if (!messages[matchingRoom]) messages[matchingRoom] = [];
-      messages[matchingRoom].push({ data, sender, "socket-id-sender": socket.id, messageId });
-      io.in(matchingRoom).emit("chat-message", data, sender, socket.id, messageId);
-    });
-
-    // Handle user online time tracking and disconnection
-    socket.on("disconnect", () => {
-      // Clean up the socket from any rooms it belonged to
-      for (const [roomKey, socketList] of Object.entries(connections)) {
-        const index = socketList.indexOf(socket.id);
-        if (index !== -1) {
-          // Notify remaining participants
-          socketList.forEach((sid) => {
-            io.to(sid).emit("user-left", socket.id);
-          });
-          // Remove from room list
-          socketList.splice(index, 1);
-          if (socketList.length === 0) delete connections[roomKey];
-        }
+      const roomId = socket.data.roomId;
+      const text = String(data || "").trim();
+      if (!roomId || !text) {
+        console.warn("[socket] chat message rejected", { 
+          reason: !roomId ? "no room" : "empty text",
+          socketId: socket.id,
+          roomId
+        });
+        return;
       }
-      // Remove online time record
-      delete timeOnline[socket.id];
+
+      const chatMessage = [
+        text,
+        String(sender || socket.data.username || "Anonymous"),
+        socket.id,
+        messageId || randomUUID(),
+      ];
+      const history = messagesByRoom.get(roomId) || [];
+      messagesByRoom.set(roomId, [...history, chatMessage]);
+
+      console.info("[socket] chat message", { 
+        roomId, 
+        socketId: socket.id,
+        sender: String(sender || socket.data.username || "Anonymous"),
+        messageId: messageId || "auto-generated",
+        text: text.substring(0, 50)
+      });
+      // The sender already renders locally; only peers need the broadcast.
+      // Broadcast to all users EXCEPT the sender
+      socket.to(roomId).emit("chat-message", ...chatMessage);
     });
 
-    return io;
+    socket.on("disconnecting", () => {
+      const roomId = socket.data.roomId;
+      if (!roomId) {
+        console.info("[socket] disconnecting without room", { socketId: socket.id });
+        return;
+      }
+      console.info("[socket] leaving room", { roomId, socketId: socket.id });
+      socket.to(roomId).emit("user-left", socket.id);
+    });
+
+    socket.on("disconnect", (reason) => {
+      const roomId = socket.data.roomId;
+      if (roomId && !io.sockets.adapter.rooms.has(roomId)) {
+        console.info("[socket] room is now empty, cleaning up message history", { roomId });
+        messagesByRoom.delete(roomId);
+      }
+      console.info("[socket] disconnected", { 
+        socketId: socket.id, 
+        roomId,
+        reason 
+      });
+    });
   });
+
+  return io;
 };
 
 export default connectToSocket;
