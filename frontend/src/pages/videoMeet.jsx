@@ -23,6 +23,7 @@ import styles from "../styles/videoComponent.module.css";
 function CameraPreview({ previewVideoRef, previewStreamRef, stopStream }) {
   useEffect(() => {
     let mounted = true;
+    const previewVideo = previewVideoRef.current;
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -31,7 +32,7 @@ function CameraPreview({ previewVideoRef, previewStreamRef, stopStream }) {
           return;
         }
         previewStreamRef.current = stream;
-        if (previewVideoRef.current) previewVideoRef.current.srcObject = stream;
+        if (previewVideo) previewVideo.srcObject = stream;
       } catch (err) {
         console.error("CameraPreview: unable to access camera", err);
       }
@@ -45,7 +46,7 @@ function CameraPreview({ previewVideoRef, previewStreamRef, stopStream }) {
         console.error("Error stopping preview stream:", e);
       }
       previewStreamRef.current = null;
-      if (previewVideoRef.current) previewVideoRef.current.srcObject = null;
+      if (previewVideo) previewVideo.srcObject = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -63,12 +64,46 @@ function CameraPreview({ previewVideoRef, previewStreamRef, stopStream }) {
   );
 }
 
+function RemoteVideo({ stream }) {
+  const remoteVideoRef = useRef(null);
+
+  useEffect(() => {
+    const videoElement = remoteVideoRef.current;
+    if (videoElement) videoElement.srcObject = stream;
+    return () => {
+      if (videoElement) videoElement.srcObject = null;
+    };
+  }, [stream]);
+
+  return (
+    <video
+      ref={remoteVideoRef}
+      autoPlay
+      playsInline
+      style={{ width: "100%", height: "100%" }}
+    />
+  );
+}
+
 // Uses the local backend by default; set VITE_SIGNALING_SERVER_URL for LAN or deployed clients.
 const serverUrl =
   import.meta.env.VITE_SIGNALING_SERVER_URL || "http://localhost:5000";
+const turnServer = import.meta.env.VITE_TURN_URL;
 const peerConfigConnections = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    ...(turnServer
+      ? [
+          {
+            urls: turnServer,
+            username: import.meta.env.VITE_TURN_USERNAME,
+            credential: import.meta.env.VITE_TURN_CREDENTIAL,
+          },
+        ]
+      : []),
+  ],
 };
+const getRoomId = () => window.location.pathname.replace(/^\/+|\/+$/g, "");
 
 export default function VideoMeetComponent() {
   const socketRef = useRef(null);
@@ -80,9 +115,9 @@ export default function VideoMeetComponent() {
   const peerConnectionsRef = useRef({});
   const pendingIceCandidatesRef = useRef({});
   const videoRef = useRef([]);
-
   const [videoAvailable, setVideoAvailable] = useState(false);
   const [audioAvailable, setAudioAvailable] = useState(false);
+  const [mediaCheckComplete, setMediaCheckComplete] = useState(false);
   const [video, setVideo] = useState(false);
   const [audio, setAudio] = useState(false);
   const [screen, setScreen] = useState(false);
@@ -144,12 +179,20 @@ export default function VideoMeetComponent() {
 
   /** Replaces the outgoing tracks for every connected peer with the current local stream. */
   const replacePeerTracks = (stream) => {
-    Object.values(peerConnectionsRef.current).forEach((connection) => {
+    console.info("[webrtc] replacing peer tracks", { peerCount: Object.keys(peerConnectionsRef.current).length });
+    Object.entries(peerConnectionsRef.current).forEach(([socketId, connection]) => {
       const senders = connection.getSenders();
-      stream.getTracks().forEach((track) => {
-        const sender = senders.find((item) => item.track?.kind === track.kind);
-        if (sender) sender.replaceTrack(track);
-        else connection.addTrack(track, stream);
+      stream.getTracks().forEach((newTrack) => {
+        const sender = senders.find((item) => item.track?.kind === newTrack.kind);
+        if (sender) {
+          console.info("[webrtc] replacing track", { socketId, kind: newTrack.kind });
+          sender.replaceTrack(newTrack).catch((err) => {
+            console.error("[webrtc] failed to replace track", { socketId, kind: newTrack.kind, error: err });
+          });
+        } else {
+          console.info("[webrtc] adding new track", { socketId, kind: newTrack.kind });
+          connection.addTrack(newTrack, stream);
+        }
       });
     });
   };
@@ -242,6 +285,8 @@ export default function VideoMeetComponent() {
 
   /** Adds or updates a remote participant's video stream. */
   const addRemoteStream = (socketId, stream) => {
+    console.info("[webrtc] remote track received", { socketId });
+    
     setVideos((currentVideos) => {
       const existing = currentVideos.find((item) => item.socketId === socketId);
       const updatedVideos = existing
@@ -250,58 +295,101 @@ export default function VideoMeetComponent() {
           )
         : [...currentVideos, { socketId, stream }];
       videoRef.current = updatedVideos;
+      
       return updatedVideos;
     });
+  };
+
+  const clearPeerConnections = (clearRenderedVideos = true) => {
+    Object.values(peerConnectionsRef.current).forEach((connection) =>
+      connection.close(),
+    );
+    peerConnectionsRef.current = {};
+    pendingIceCandidatesRef.current = {};
+    videoRef.current = [];
+    if (clearRenderedVideos) setVideos([]);
   };
 
   /** Creates and configures one peer connection for a participant. */
   const createPeerConnection = (socketId) => {
     if (peerConnectionsRef.current[socketId])
       return peerConnectionsRef.current[socketId];
+    console.info("[webrtc] creating peer connection", { socketId });
     const connection = new RTCPeerConnection(peerConfigConnections);
     peerConnectionsRef.current[socketId] = connection;
     connection.onicecandidate = ({ candidate }) => {
-      if (candidate)
+      if (candidate) {
+        console.info("[webrtc] ICE candidate sent", { socketId });
         socketRef.current?.emit(
           "signal",
           socketId,
           JSON.stringify({ ice: candidate }),
         );
+      }
     };
     connection.ontrack = ({ streams }) => {
-      if (streams[0]) addRemoteStream(socketId, streams[0]);
+      if (streams[0]) {
+        console.info("[webrtc] remote track handler fired", { socketId, trackCount: streams[0].getTracks().length });
+        addRemoteStream(socketId, streams[0]);
+      }
     };
+    connection.onconnectionstatechange = () => {
+      console.info("[webrtc] connection state", {
+        socketId,
+        state: connection.connectionState,
+      });
+    };
+    
+    // Add local tracks if available, otherwise add placeholder tracks
     const stream = localStreamRef.current ?? createBlackSilenceStream();
-    if (!localStreamRef.current) localStreamRef.current = stream;
-    stream.getTracks().forEach((track) => connection.addTrack(track, stream));
+    if (!localStreamRef.current) {
+      console.warn("[webrtc] local stream not available yet, using placeholder", { socketId });
+      localStreamRef.current = stream;
+    }
+    
+    const tracks = stream.getTracks();
+    console.info("[webrtc] adding tracks to peer connection", { socketId, trackCount: tracks.length });
+    tracks.forEach((track) => {
+      connection.addTrack(track, stream);
+    });
+    
     return connection;
   };
 
   /** Sends an SDP offer to one participant. */
   const createOffer = async (socketId) => {
+    console.info("[webrtc] creating offer for peer", { socketId });
     const connection = createPeerConnection(socketId);
     try {
       const description = await connection.createOffer();
       await connection.setLocalDescription(description);
+      console.info("[webrtc] offer created and local description set", { socketId });
       socketRef.current?.emit(
         "signal",
         socketId,
         JSON.stringify({ sdp: connection.localDescription }),
       );
+      console.info("[webrtc] offer sent to peer", { socketId });
     } catch (error) {
-      console.error("Unable to create offer:", error);
+      console.error("[webrtc] error creating offer", { socketId, error: error?.message });
     }
   };
 
   /** Queues an ICE candidate until the peer connection has a remote description. */
   const addIceCandidate = async (socketId, connection, iceCandidate) => {
-    const candidate = new RTCIceCandidate(iceCandidate);
-    if (!connection.remoteDescription) {
-      pendingIceCandidatesRef.current[socketId] ??= [];
-      pendingIceCandidatesRef.current[socketId].push(candidate);
-      return;
+    try {
+      const candidate = new RTCIceCandidate(iceCandidate);
+      if (!connection.remoteDescription) {
+        console.info("[webrtc] queueing ICE candidate (no remote description yet)", { socketId });
+        pendingIceCandidatesRef.current[socketId] ??= [];
+        pendingIceCandidatesRef.current[socketId].push(candidate);
+        return;
+      }
+      console.info("[webrtc] adding ICE candidate", { socketId });
+      await connection.addIceCandidate(candidate);
+    } catch (error) {
+      console.warn("[webrtc] error adding ICE candidate", { socketId, error: error?.message });
     }
-    await connection.addIceCandidate(candidate);
   };
 
   /** Adds ICE candidates that arrived before the remote offer or answer. */
@@ -315,28 +403,51 @@ export default function VideoMeetComponent() {
 
   /** Applies incoming WebRTC signaling data and replies to offers. */
   const gotMessageFromServer = async (fromId, payload) => {
-    if (fromId === socketIdRef.current) return;
+    if (fromId === socketIdRef.current) {
+      console.warn("[webrtc] ignoring signal from self", { fromId });
+      return;
+    }
+    
+    console.info("[webrtc] processing signal from peer", { fromId });
     const connection = createPeerConnection(fromId);
+    
     try {
       const signal = JSON.parse(payload);
+      
       if (signal.sdp) {
+        console.info(`[webrtc] ${signal.sdp.type} received from ${fromId}`, { 
+          fromId, 
+          sdpType: signal.sdp.type 
+        });
+        
         await connection.setRemoteDescription(
           new RTCSessionDescription(signal.sdp),
         );
+        console.info("[webrtc] remote description set", { fromId });
+        
+        // Flush any pending ICE candidates
         await flushPendingIceCandidates(fromId, connection);
+        
         if (signal.sdp.type === "offer") {
+          console.info("[webrtc] offer received, creating answer", { fromId });
           const answer = await connection.createAnswer();
           await connection.setLocalDescription(answer);
+          console.info("[webrtc] answer created and local description set", { fromId });
           socketRef.current?.emit(
             "signal",
             fromId,
             JSON.stringify({ sdp: connection.localDescription }),
           );
+          console.info("[webrtc] answer sent", { fromId });
         }
       }
-      if (signal.ice) await addIceCandidate(fromId, connection, signal.ice);
+      
+      if (signal.ice) {
+        console.info("[webrtc] ICE candidate received", { fromId });
+        await addIceCandidate(fromId, connection, signal.ice);
+      }
     } catch (error) {
-      console.error("Unable to process WebRTC signal:", error);
+      console.error("[webrtc] error processing signal", { fromId, error: error?.message });
     }
   };
 
@@ -351,55 +462,79 @@ export default function VideoMeetComponent() {
       }
       return [...currentMessages, { sender, data, messageId }];
     });
+    console.info("[chat] message received", { socketId: socketIdSender });
     if (socketIdSender !== socketIdRef.current)
       setNewMessages((count) => count + 1);
   };
 
   /** Connects the client to the signaling server and subscribes to call events. */
   const connectToSocketServer = () => {
-    if (socketRef.current) return;
+    if (socketRef.current) {
+      console.warn("[socket] socket already exists, returning early");
+      return;
+    }
+    console.info("[socket] creating new socket connection");
     const socket = io(serverUrl);
     socketRef.current = socket;
-    socket.on("signal", gotMessageFromServer);
-    // NEW: the server sends join/leave notices through the same "chat-message"
-    // event (with sender "System"), so addMessage already knows how to render
-    // them - no separate listener is needed for that part.
-    socket.on("chat-message", addMessage);
+    
+    // Register event listeners BEFORE attempting to join
+    socket.on("signal", (fromId, payload) => {
+      console.info("[socket] signal event received", { fromId });
+      gotMessageFromServer(fromId, payload);
+    });
+    
+    socket.on("chat-message", (data, sender, socketIdSender, messageId) => {
+      console.info("[socket] chat-message event received", { sender, socketIdSender, messageId });
+      addMessage(data, sender, socketIdSender, messageId);
+    });
+    
     socket.on("connect", () => {
       socketIdRef.current = socket.id;
-      // Use the meeting path so localhost and LAN-IP clients enter the same room.
-      // NEW: also send the chosen username so the server can announce this
-      // user's join (and later, leave) to everyone else already in the room.
-      socket.emit("join-call", window.location.pathname, username);
+      console.info("[socket] connected", { socketId: socket.id });
+      const roomId = getRoomId();
+      console.info("[socket] joining room", { roomId, socketId: socket.id, username });
+      socket.emit("join-call", roomId, username);
     });
-    // NEW: server-side acknowledgement that this client has fully joined the
-    // room (chat history replayed, join notice broadcast). Once this arrives
-    // it's safe to hide the "connecting" loader and show the call UI.
-    socket.on("joined-room", () => {
+    
+    socket.on("joined-room", (roomId) => {
+      console.info("[socket] room joined successfully", { roomId, socketId: socket.id });
       setConnecting(false);
     });
-    // NEW: don't leave the user staring at a spinner forever if the
-    // signaling server can't be reached at all.
+    
+    socket.on("existing-users", (socketIds) => {
+      console.info("[socket] existing users received", { count: socketIds.length, socketIds });
+      socketIds.forEach((existingSocketId) => {
+        console.info("[socket] creating offer for existing user", { existingSocketId });
+        createOffer(existingSocketId);
+      });
+    });
+    
+    socket.on("user-joined", (socketId) => {
+      console.info("[socket] user joined notification received", { socketId });
+      // New user will send offers to us, so we don't need to create offers here
+    });
+    
     socket.on("connect_error", (error) => {
-      console.error("Unable to connect to signaling server:", error);
+      console.error("[socket] connection error", { error: error?.message || error });
       setConnecting(false);
     });
+    
+    socket.on("disconnect", (reason) => {
+      console.info("[socket] disconnected", { reason, socketId: socketIdRef.current });
+      socketIdRef.current = null;
+      clearPeerConnections();
+    });
+    
     socket.on("user-left", (id) => {
-      peerConnectionsRef.current[id]?.close();
-      delete peerConnectionsRef.current[id];
+      console.info("[socket] user left", { socketId: id });
+      if (peerConnectionsRef.current[id]) {
+        peerConnectionsRef.current[id].close();
+        delete peerConnectionsRef.current[id];
+      }
       delete pendingIceCandidatesRef.current[id];
       setVideos((currentVideos) =>
         currentVideos.filter((item) => item.socketId !== id),
       );
-    });
-    socket.on("user-joined", (id, clients) => {
-      clients
-        .filter((clientId) => clientId !== socketIdRef.current)
-        .forEach(createPeerConnection);
-      if (id === socketIdRef.current)
-        clients
-          .filter((clientId) => clientId !== socketIdRef.current)
-          .forEach(createOffer);
     });
   };
 
@@ -441,7 +576,10 @@ export default function VideoMeetComponent() {
   /** Sends the current chat text to all participants. */
   const sendMessage = () => {
     const trimmedMessage = message.trim();
-    if (!trimmedMessage || !socketRef.current) return;
+    if (!trimmedMessage || !socketRef.current) {
+      console.warn("[chat] message not sent", { reason: trimmedMessage ? "no socket" : "empty message" });
+      return;
+    }
     const messageId = crypto.randomUUID();
     // Add locally first, then let the server broadcast the same ID to other participants.
     addMessage(
@@ -450,6 +588,7 @@ export default function VideoMeetComponent() {
       socketIdRef.current,
       messageId,
     );
+    console.info("[chat] message sent", { socketId: socketIdRef.current, messageId });
     socketRef.current.emit("chat-message", trimmedMessage, username, messageId);
     setMessage("");
   };
@@ -478,9 +617,7 @@ export default function VideoMeetComponent() {
       // Ensure preview stream (if any) is stopped when leaving
       stopStream(previewStreamRef.current);
       previewStreamRef.current = null;
-      Object.values(peerConnectionsRef.current).forEach((connection) =>
-        connection.close(),
-      );
+      clearPeerConnections();
       socketRef.current?.disconnect();
       navigate("/home", { replace: true });
     }
@@ -514,16 +651,20 @@ export default function VideoMeetComponent() {
 
   /** Checks permissions once, then cleans up media and socket resources on unmount. */
   useEffect(() => {
-    const peerConnections = peerConnectionsRef.current;
     void (async () => {
-      await getPermissions();
+      try {
+        await getPermissions();
+      } finally {
+        setMediaCheckComplete(true);
+      }
     })();
     return () => {
       stopStream(localStreamRef.current);
-      Object.values(peerConnections).forEach((connection) =>
-        connection.close(),
-      );
-      socketRef.current?.disconnect();
+      clearPeerConnections(false);
+      const socket = socketRef.current;
+      socket?.removeAllListeners();
+      socket?.disconnect();
+      socketRef.current = null;
     };
     // This effect must run only once to avoid repeating the permission prompt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -547,8 +688,12 @@ export default function VideoMeetComponent() {
                 error={Boolean(nameError)}
                 helperText={nameError}
               />
-              <Button variant="contained" onClick={connect} disabled={!username.trim()}>
-                Connect
+              <Button
+                variant="contained"
+                onClick={connect}
+                disabled={!username.trim() || !mediaCheckComplete}
+              >
+                {mediaCheckComplete ? "Connect" : "Checking camera and microphone..."}
               </Button>
             </div>
             <div className={styles.previewWrapper}>
@@ -663,13 +808,7 @@ export default function VideoMeetComponent() {
           <div className={styles.conferenceView}>
             {videos.map((remoteVideo) => (
               <div key={remoteVideo.socketId}>
-                <video
-                  ref={(element) => {
-                    if (element) element.srcObject = remoteVideo.stream;
-                  }}
-                  autoPlay
-                  playsInline
-                />
+                <RemoteVideo stream={remoteVideo.stream} />
               </div>
             ))}
           </div>
